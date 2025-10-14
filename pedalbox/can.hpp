@@ -33,6 +33,7 @@ typedef struct {
 
 
 sCAN_Header parse_id(uint32_t id);
+bool bready_to_drive(void);
 void can_init(void);
 bool can_tx_adc_taps(uint16_t taps);
 

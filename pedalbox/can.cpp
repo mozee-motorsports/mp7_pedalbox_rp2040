@@ -6,6 +6,8 @@ extern "C" {
     #include "can2040.h"
 }
 
+#define STB 19
+
 sCAN_Header parse_id(uint32_t id) {
     return sCAN_Header {
         .priority = (uint8_t)((id >> 8) & 0b0111),
@@ -30,13 +32,23 @@ static struct can2040_msg msg;
 static volatile bool samplefresh = false;
 static double sample = 0.0;
 
+static bool ready_to_drive = false;
+
+bool bready_to_drive(void) {
+    return ready_to_drive;
+}
 
 static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *msg) {
     switch (notify) {
         case CAN2040_NOTIFY_TX: 
             break;
         case CAN2040_NOTIFY_RX: 
-            gpio_xor_mask(1 << 25);
+            if(!ready_to_drive) {
+                sCAN_Header header = parse_id(msg->id);
+                if(header.direction == FROM && header.module == BROADCAST) {
+                    ready_to_drive = true;
+                }
+            }
             break;
     }
 }
@@ -52,6 +64,10 @@ void can_init(void) {
     uint32_t bitrate = ONE_MEG;
     uint32_t gpio_tx = CAN_TX;
     uint32_t gpio_rx = CAN_RX;
+     
+    gpio_init(STB);
+    gpio_set_dir(STB, GPIO_OUT);
+    gpio_put(STB, 0);
 
     can2040_setup(&cbus, pio_num);
     can2040_callback_config(&cbus, can2040_cb);
