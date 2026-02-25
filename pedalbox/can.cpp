@@ -92,6 +92,8 @@ void can_init(void) {
 }
 
 bool can_tx_adc_taps(uint16_t taps) {
+    static uint16_t msg_num = 0;
+    
     sCAN_Header header = {
         .priority = 0,
         .module = PEDAL_BOX,
@@ -100,9 +102,15 @@ bool can_tx_adc_taps(uint16_t taps) {
     };
     uint32_t id = header2id(header);
     msg.id = id;
-    msg.dlc = 2;
+    msg.dlc = 4;
     msg.data[0] = taps & 0xFF;
     msg.data[1] = (taps >> 8) & 0xFF;
+    // TODO: remove after troubleshooting
+    //transmit message number for log alignment
+    msg.data[2] = msg_num & 0xFF;
+    msg.data[3] = (msg_num >> 8) & 0xFF;
+    msg_num++;
+
     return can2040_transmit(&cbus, &msg);
 }
 
