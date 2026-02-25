@@ -4,6 +4,7 @@
 
 extern "C" {
     #include "can2040.h"
+#include <cstdio>
 }
 
 #define STB 19
@@ -45,12 +46,23 @@ static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *
         case CAN2040_NOTIFY_RX: 
             if(!ready_to_drive) {
                 sCAN_Header header = parse_id(msg->id);
-                if(header.direction == FROM && header.module == BROADCAST) {
+                if(gpio_get(21) == 1) {
                     ready_to_drive = true;
                 }
             }
+
+            throttle_watchdog_reset();
+
             break;
     }
+    return;
+}
+
+void ready_timer_cb() {
+    if (!ready_to_drive && gpio_get(21)) {
+        ready_to_drive = true;
+    }
+    return; // keep repeating
 }
 
 static void PIOx_IRQHandler(void) {
@@ -92,4 +104,48 @@ bool can_tx_adc_taps(uint16_t taps) {
     msg.data[0] = taps & 0xFF;
     msg.data[1] = (taps >> 8) & 0xFF;
     return can2040_transmit(&cbus, &msg);
+}
+
+struct repeating_timer rtd_timer;
+struct repeating_timer throttle_watchdog;
+
+bool throttle_watchdog_callback() {
+    printf("throttle watchdog tick\n");
+    // keep the timer running
+    return true;
+}
+
+void throttle_watchdog_reset() {
+    printf("throttle watchdog reset\n");
+    cancel_repeating_timer(&throttle_watchdog); // early stop
+    add_repeating_timer_ms(500, (repeating_timer_callback_t)throttle_watchdog_callback, NULL, &throttle_watchdog); 
+}
+
+void throttle_watchdog_set() {
+    cancel_repeating_timer(&throttle_watchdog);
+    add_repeating_timer_ms(500, (repeating_timer_callback_t)throttle_watchdog_callback, NULL, &throttle_watchdog);
+}
+
+static const sCAN_Header rtd_header = {
+    .priority = 0,
+    .module = BROADCAST,
+    .direction = FROM,
+    .command = 0, // heartbeat?
+};
+
+static bool rtd_heartbeat(__unused struct repeating_timer *rtd_timer) {
+    printf("RTD heartbeat\n");
+    gpio_xor_mask(1 << 25);
+    msg.id = header2id(rtd_header);
+    msg.dlc = 0;
+    printf("%d\n", can2040_transmit(&cbus, &msg));
+    return 1;
+}
+
+void rtd_enable_heartbeat() {
+    add_repeating_timer_ms(500, (repeating_timer_callback_t)rtd_heartbeat, NULL, &rtd_timer);
+}
+
+void rtd_disable_heartbeat() {
+    cancel_repeating_timer(&rtd_timer);
 }
