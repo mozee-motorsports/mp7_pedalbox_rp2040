@@ -91,8 +91,7 @@ void can_init(void) {
     can2040_start(&cbus, sys_clock, bitrate, gpio_rx, gpio_tx);
 }
 
-bool can_tx_adc_taps(uint16_t taps) {
-    static uint16_t msg_num = 0;
+bool can_tx_adc_taps(uint16_t taps, uint16_t msg_num) {
     
     sCAN_Header header = {
         .priority = 0,
@@ -109,8 +108,7 @@ bool can_tx_adc_taps(uint16_t taps) {
     //transmit message number for log alignment
     msg.data[2] = msg_num & 0xFF;
     msg.data[3] = (msg_num >> 8) & 0xFF;
-    msg_num++;
-
+    
     return can2040_transmit(&cbus, &msg);
 }
 
@@ -118,13 +116,13 @@ struct repeating_timer rtd_timer;
 struct repeating_timer throttle_watchdog;
 
 bool throttle_watchdog_callback() {
-    printf("throttle watchdog tick\n");
+    //printf("throttle watchdog tick\n");
     // keep the timer running
     return true;
 }
 
 void throttle_watchdog_reset() {
-    printf("throttle watchdog reset\n");
+    //printf("throttle watchdog reset\n");
     cancel_repeating_timer(&throttle_watchdog); // early stop
     add_repeating_timer_ms(500, (repeating_timer_callback_t)throttle_watchdog_callback, NULL, &throttle_watchdog); 
 }
@@ -142,11 +140,11 @@ static const sCAN_Header rtd_header = {
 };
 
 static bool rtd_heartbeat(__unused struct repeating_timer *rtd_timer) {
-    printf("RTD heartbeat\n");
+    //printf("RTD heartbeat\n");
     gpio_xor_mask(1 << 25);
     msg.id = header2id(rtd_header);
     msg.dlc = 0;
-    printf("%d\n", can2040_transmit(&cbus, &msg));
+    //printf("%d\n", can2040_transmit(&cbus, &msg));
     return 1;
 }
 
