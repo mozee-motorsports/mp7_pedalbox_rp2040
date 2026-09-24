@@ -172,25 +172,26 @@ int main()
     gpio_set_dir(RTD_SRC, GPIO_OUT);
     gpio_put(RTD_SRC, 1);
 
-    gpio_init(25);
-    gpio_set_dir(25, GPIO_OUT);
+    gpio_init(19);
+    gpio_set_dir(19, GPIO_OUT);
+    gpio_put(19, 0);
     can_init();
     pedal_init();
 
-    bool pressed = false;
-    while (!pressed)
-    {
-        tune_throttle(pressed);
-        if (gpio_get(RTD_BUTTON))
-        {
-            sleep_ms(5);
-            if (gpio_get(RTD_BUTTON))
-            {
-                pressed = true;
-            }
-        }
-    }
-    printf("done tuning\n");
+    // bool pressed = false;
+    // while (!pressed)
+    // {
+    //     tune_throttle(pressed);
+    //     if (gpio_get(RTD_BUTTON))
+    //     {
+    //         sleep_ms(5);
+    //         if (gpio_get(RTD_BUTTON))
+    //         {
+    //             pressed = true;
+    //         }
+    //     }
+    // }
+    // printf("done tuning\n");
 
     // Reset samples for averaging
     for (uint8_t i = 0; i < NUM_SAMPLES; i++)
@@ -211,7 +212,7 @@ int main()
     while (true)
     {
         sleep_ms(100);
-        // gpio_put(25, 0);
+        //gpio_put(19, 0);
         // sleep_ms(1000);
         // gpio_put(25, 1);
         // sleep_ms(1000);

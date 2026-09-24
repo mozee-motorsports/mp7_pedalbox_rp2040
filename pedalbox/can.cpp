@@ -109,6 +109,7 @@ bool can_tx_adc_taps(uint16_t taps, uint16_t msg_num) {
     msg.data[2] = msg_num & 0xFF;
     msg.data[3] = (msg_num >> 8) & 0xFF;
     
+    printf("TX: %d %d %d %d\n", msg.data[0], msg.data[1], msg.data[2], msg.data[3]);
     return can2040_transmit(&cbus, &msg);
 }
 
