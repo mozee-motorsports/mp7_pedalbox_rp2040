@@ -18,8 +18,8 @@ static bool toggle = true;
 
 // DEFAULT
 // NOTE: these need tuned experimentally
-const static uint16_t TUNED_MIN = 1192;
-const static uint16_t TUNED_MAX = 1455;
+const static uint16_t TUNED_MIN = 560;
+const static uint16_t TUNED_MAX = 1180;
 
 // EMA filter variables
 static float filtered_val = 0;
