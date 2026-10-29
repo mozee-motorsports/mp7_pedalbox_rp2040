@@ -4,28 +4,12 @@
 
 extern "C" {
     #include "can2040.h"
-#include <cstdio>
+    #include <cstdio>
 }
 
 #define STB 19
-
-sCAN_Header parse_id(uint32_t id) {
-    return sCAN_Header {
-        .priority = (uint8_t)((id >> 8) & 0b0111),
-        .module  = (eModule)((id >> 5) & 0b0111),
-        .direction = (eDirection) ((id >> 4) & 0b01),
-        .command = (uint8_t)(id & 0xF),
-    };
-}
-
-uint32_t header2id(sCAN_Header header) {
-    uint32_t id = 0;
-    id |= (header.priority << 8);
-    id |= (header.module << 5);
-    id |= (header.direction << 4);
-    id |= header.command;
-    return id;
-}
+#define CAN_PEDAL_POS 0x7E7
+#define CAN_READY_TO_DRIVE 0x7E6
 
 static struct can2040 cbus;
 static struct can2040_msg msg;
@@ -43,9 +27,9 @@ static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *
     switch (notify) {
         case CAN2040_NOTIFY_TX: 
             break;
+
         case CAN2040_NOTIFY_RX: 
             if(!ready_to_drive) {
-                sCAN_Header header = parse_id(msg->id);
                 if(gpio_get(21) == 1) {
                     ready_to_drive = true;
                 }
@@ -54,6 +38,7 @@ static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *
             throttle_watchdog_reset();
 
             break;
+
     }
     return;
 }
@@ -92,15 +77,8 @@ void can_init(void) {
 }
 
 bool can_tx_adc_taps(uint16_t taps, uint16_t msg_num) {
-    
-    sCAN_Header header = {
-        .priority = 0,
-        .module = PEDAL_BOX,
-        .direction = FROM,
-        .command = 3, // throttle command
-    };
-    uint32_t id = header2id(header);
-    msg.id = id;
+
+    msg.id = CAN_PEDAL_POS;
     msg.dlc = 4;
     msg.data[0] = taps & 0xFF;
     msg.data[1] = (taps >> 8) & 0xFF;
@@ -133,17 +111,10 @@ void throttle_watchdog_set() {
     add_repeating_timer_ms(500, (repeating_timer_callback_t)throttle_watchdog_callback, NULL, &throttle_watchdog);
 }
 
-static const sCAN_Header rtd_header = {
-    .priority = 0,
-    .module = BROADCAST,
-    .direction = FROM,
-    .command = 0, // heartbeat?
-};
-
 static bool rtd_heartbeat(__unused struct repeating_timer *rtd_timer) {
     //printf("RTD heartbeat\n");
     gpio_xor_mask(1 << 25);
-    msg.id = header2id(rtd_header);
+    msg.id = CAN_READY_TO_DRIVE;
     msg.dlc = 0;
     //printf("%d\n", can2040_transmit(&cbus, &msg));
     return 1;

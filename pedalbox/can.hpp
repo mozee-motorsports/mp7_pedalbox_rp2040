@@ -9,30 +9,6 @@
 #define RP2350_SYS_CLK 150000000
 #define RP2040_SYS_CLK 125000000
 
-typedef enum {
-    SAFETY_SYSTEM = 0,
-    BROADCAST = 1,
-    THROTTLE_CONTROL_BOARD = 2,
-    PEDAL_BOX = 3,
-    STEERING_WHEEL = 4,
-    THERMO_CONTROL_BOARD = 5,
-    ISOLATION_EXPANSION_DEVICE = 6,
-} eModule;
-
-typedef enum {
-    TO = 0,
-    FROM = 1,
-} eDirection;
-
-typedef struct {
-    uint8_t priority; 
-    eModule module; 
-    eDirection direction;
-    uint8_t command;
-} sCAN_Header; 
-
-
-sCAN_Header parse_id(uint32_t id);
 bool bready_to_drive(void);
 void can_init(void);
 bool can_tx_adc_taps(uint16_t taps, uint16_t msg_num);
